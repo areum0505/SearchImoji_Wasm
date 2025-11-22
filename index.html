@@ -56,18 +56,34 @@
                         }
 
                         // WASM 함수 호출
+                        const t1 = performance.now();
                         resultPtr = searchEmojisWASM(wasmPtr); 
+                        const t2 = performance.now();
+                        const wasmCallTime = t2 - t1;
+
                         const resultJsonString = window.WASM_Module.UTF8ToString(resultPtr);
 
                         // 결과 처리 및 출력
-                        const results = JSON.parse(resultJsonString);
-                        let htmlOutput = `<h4>✅ 검색 결과 (WASM 계산)</h4>`;
+                        const resultData = JSON.parse(resultJsonString);
+                        
+                        // C++에서 받은 결과가 객체이고 results 속성을 가지는지 확인
+                        const results = resultData.results || resultData;
+                        const wasmInternalTime = resultData.wasm_time_ms;
+
+                        let htmlOutput = `<h4>✅ 검색 결과</h4>`;
+                        
+                        // 시간 정보 표시
+                        htmlOutput += `<div style="margin-bottom: 15px; font-size: 0.9em; background: #e0e0e0; padding: 10px; border-radius: 4px;">`
+                        htmlOutput += `<b>[성능 측정]</b><br>`;
+                        htmlOutput += `• JS WASM 호출 시간: <b>${wasmCallTime.toFixed(2)} ms</b><br>`;
+                        htmlOutput += `</div>`;
+
                         results.forEach((item, index) => {
                             const meta = window.emojiMetadata[item.index];
                             if (meta) {
                                 htmlOutput += `<div class="emoji-result">
                                     ${index + 1}. ${meta.character} ${meta.description} 
-                                    <span style="color: #666;">[Score: ${item.score}]</span>
+                                    <span style="color: #666;">[Score: ${item.score.toFixed(4)}]</span>
                                 </div>`;
                             }
                         });
