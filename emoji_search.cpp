@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cstring>
+#include <chrono>
 
 #include "emoji.hpp"   // EMBEDDINGS 정의 포함
 
@@ -41,18 +42,6 @@ double cosineSimilarity(const double* dbVec, const double* queryVec) {
 // -------------------- WASM 함수 --------------------
 extern "C" {
 
-    /**
-     * @brief 768차원 쿼리 벡터를 받아 DB와 유사도 비교 후
-     * 상위 5개를 JSON 문자열로 반환
-     *
-     * 반환 예:
-     * {
-     *   "results": [
-     *      { "index": 120, "score": 0.8123 },
-     *      ...
-     *   ]
-     * }
-     */
     const char* search_emojis(const double* query_vector) {
         if (!query_vector) {
             const char* err = "{\"error\":\"Query vector is NULL\"}";
@@ -68,6 +57,8 @@ extern "C" {
             return alloc;
         }
 
+        auto start_time = std::chrono::high_resolution_clock::now();
+
         std::vector<SearchResult> results;
         results.reserve(NUM_EMBEDDINGS);
 
@@ -80,6 +71,9 @@ extern "C" {
             [](const SearchResult& a, const SearchResult& b) {
                 return a.score > b.score;
             });
+        
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed_ms = end_time - start_time;
 
         std::stringstream ss;
         ss << "{ \"results\": [";
@@ -92,7 +86,7 @@ extern "C" {
                << "\"score\":" << std::fixed << std::setprecision(4) << results[i].score
                << "}";
         }
-        ss << "] }";
+        ss << "], \"time_ms\": " << std::fixed << std::setprecision(4) << elapsed_ms.count() << " }";
 
         std::string json_str = ss.str();
         char* out = new char[json_str.size() + 1];
@@ -100,9 +94,6 @@ extern "C" {
         return out;
     }
 
-    /**
-     * @brief WASM에서 생성한 JSON 문자열 메모리 해제
-     */
     void free_result_memory(const char* ptr) {
         if (ptr) {
             delete[] ptr;

@@ -36,12 +36,14 @@ function cosineSimilarityJS(vecA, vecB) {
 /**
  * 쿼리 벡터와 전체 임베딩 데이터를 사용하여 유사도 검색을 수행합니다.
  * @param {number[]} queryVector 
- * @returns {Array<{index: number, score: number}>}
+ * @returns {object} { results: Array<{index: number, score: number}>, time_ms: number }
  */
 function searchEmojisJS(queryVector) {
+    const start_time = performance.now();
+
     if (!window.EMBEDDINGS || window.EMBEDDINGS.length === 0) {
         console.error("EMBEDDINGS 데이터가 로드되지 않았습니다.");
-        return [];
+        return { results: [], time_ms: 0 };
     }
 
     const results = [];
@@ -54,5 +56,10 @@ function searchEmojisJS(queryVector) {
     results.sort((a, b) => b.score - a.score);
 
     // 상위 10개 결과 반환
-    return results.slice(0, 5);
+    const topResults = results.slice(0, 5);
+
+    const end_time = performance.now();
+    const time_ms = end_time - start_time;
+
+    return { results: topResults, time_ms: time_ms };
 }

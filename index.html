@@ -59,14 +59,11 @@
                             window.WASM_Module.setValue(wasmPtr + i * 8, vector[i], 'double');
                         }
 
-                        const t2 = performance.now();
                         resultPtr = searchEmojisWASM(wasmPtr);
-                        const t3 = performance.now();
-                        const wasmCallTime = t3 - t2;
-
                         const resultJsonString = window.WASM_Module.UTF8ToString(resultPtr);
                         const resultData = JSON.parse(resultJsonString);
-                        const wasmResults = resultData.results; // 변경된 JSON 형식
+                        const wasmResults = resultData.results; 
+                        const wasmCallTime = resultData.time_ms; // C++에서 측정된 시간
 
                         let htmlOutput1 = `
                             <div style="font-size: 0.9em; color: #333;">
@@ -87,10 +84,9 @@
                     document.getElementById('status').innerText = "3/3. JavaScript 계산 중...";
                     output2Div.innerHTML = "계산 중...";
 
-                    const t4 = performance.now();
-                    const jsResults = searchEmojisJS(vector);
-                    const t5 = performance.now();
-                    const jsCallTime = t5 - t4;
+                    const jsResponse = searchEmojisJS(vector); // { results: [], time_ms: N }
+                    const jsResults = jsResponse.results;
+                    const jsCallTime = jsResponse.time_ms;
 
                     let htmlOutput2 = `
                         <div style="font-size: 0.9em; color: #333;">
