@@ -1,4 +1,4 @@
-# 🔎 Emoji Semantic Search (WASM)
+# 🔎 이게모지 (Emoji Semantic Search)
 
 > **팀 9조**의 이모지 시맨틱 검색 프로젝트입니다.  
 > 사용자가 입력한 단어의 의미를 파악하여 가장 적절한 이모지를 추천해줍니다.
@@ -29,13 +29,17 @@
 3. **`비교 실행`** 버튼을 클릭합니다.
 4. 의미상 가장 유사한 **관련 이모지**가 하단에 출력되는 것을 확인합니다.
 
+### 빌드 명령어
+```
+emcc emoji_search.cpp -o emoji_search.js -msimd128 -O3 -s "EXPORTED_FUNCTIONS=['_search_emojis', '_free_result_memory', '_malloc', '_free']" -s "EXPORTED_RUNTIME_METHODS=['cwrap', 'ccall', 'getValue', 'UTF8ToString', 'setValue']" -s MODULARIZE=0 -s ENVIRONMENT='web' -s ALLOW_MEMORY_GROWTH=1 -s WASM=1 -I.
+```
 ---
 
 ## ⚡ 기술적 특징 (가산점 항목)
 
 본 프로젝트는 성능 향상을 위해 다음과 같은 최적화 기술을 적용하였습니다.
 
-* **128-bit SIMD 최적화 활성화:** Emscripten 빌드 시 SIMD(Single Instruction, Multiple Data) 옵션을 활성화하여, 웹 환경에서도 벡터 연산 속도를 극대화했습니다.
+* **128-bit SIMD 최적화 활성화:** Emscripten 빌드 시 SIMD(Single Instruction, Multiple Data) 옵션을 활성화하여, 작업 속도를 크게 향상시켰습니다.
 
 ---
 
