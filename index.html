@@ -336,6 +336,12 @@
                         const wasmResults = resultData.results; 
                         const wasmCallTime = resultData.time_ms; // C++에서 측정된 시간
 
+                        // WASM 측정 결과 콘솔 출력
+                        // console.log("WASM 상세 분석:", resultData);
+                        // console.log(`- 계산 시간: ${resultData.calc_ms} ms`);
+                        // console.log(`- 정렬 시간: ${resultData.sort_ms} ms`);
+                        // console.log(`- 총 시간: ${resultData.time_ms} ms`);
+
                         let htmlOutput1 = `
                             <div style="font-size: 0.9em; color: #333;">
                                 • WASM 계산 시간: <b>${wasmCallTime.toFixed(2)} ms</b>
@@ -359,9 +365,15 @@
                     const jsResults = jsResponse.results;
                     const jsCallTime = jsResponse.time_ms;
 
+                    // JS 측정 결과 콘솔 출력
+                    // console.log("JS 상세 분석:", jsResponse);
+                    // console.log(`- 계산 시간: ${jsResponse.calc_ms.toFixed(4)} ms`);
+                    // console.log(`- 정렬 시간: ${jsResponse.sort_ms.toFixed(4)} ms`);
+                    // console.log(`- 총 시간: ${jsResponse.time_ms.toFixed(4)} ms`);
+
                     let htmlOutput2 = `
                         <div style="font-size: 0.9em; color: #333;">
-                            • 순수 JS 계산 시간: <b>${jsCallTime.toFixed(2)} ms</b>
+                            • JS 계산 시간: <b>${jsCallTime.toFixed(2)} ms</b>
                         </div><hr>`;
                     htmlOutput2 += formatResults(jsResults, false);
                     output2Div.innerHTML = htmlOutput2;

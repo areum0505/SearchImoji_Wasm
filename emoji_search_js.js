@@ -40,11 +40,13 @@ function cosineSimilarityJS(vecA, vecB) {
  */
 function searchEmojisJS(queryVector) {
     const start_time = performance.now();
-
     if (!window.EMBEDDINGS || window.EMBEDDINGS.length === 0) {
         console.error("EMBEDDINGS 데이터가 로드되지 않았습니다.");
         return { results: [], time_ms: 0 };
     }
+
+    // 1. 유사도 계산 시간 측정 시작
+    //const t_calc_start = performance.now();
 
     const results = [];
     for (let i = 0; i < window.EMBEDDINGS.length; i++) {
@@ -52,8 +54,20 @@ function searchEmojisJS(queryVector) {
         results.push({ index: i, score: score });
     }
 
+    //const t_calc_end = performance.now(); // 계산 끝
+
+    // 2. 정렬 시간 측정 시작
+    //const t_sort_start = performance.now();
+
     // 점수가 높은 순으로 정렬
     results.sort((a, b) => b.score - a.score);
+
+    //const t_sort_end = performance.now(); // 정렬 끝
+
+    // 시간 계산
+    //const calc_ms = t_calc_end - t_calc_start;
+    //const sort_ms = t_sort_end - t_sort_start;
+    //const time_ms = calc_ms + sort_ms;
 
     // 상위 10개 결과 반환
     const topResults = results.slice(0, 5);
@@ -61,5 +75,10 @@ function searchEmojisJS(queryVector) {
     const end_time = performance.now();
     const time_ms = end_time - start_time;
 
-    return { results: topResults, time_ms: time_ms };
+    return { 
+        results: topResults, 
+        //calc_ms: calc_ms, 
+        //sort_ms: sort_ms, 
+        time_ms: time_ms 
+    };
 }

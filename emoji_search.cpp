@@ -57,7 +57,11 @@ extern "C" {
             return alloc;
         }
 
+            // 전체 처리 시간 측정 시작
         auto start_time = std::chrono::high_resolution_clock::now();
+
+        // 유사도 계산 시간 측정 시작
+        //auto t_calc_start = std::chrono::high_resolution_clock::now();
 
         std::vector<SearchResult> results;
         results.reserve(NUM_EMBEDDINGS);
@@ -67,16 +71,34 @@ extern "C" {
             results.push_back({ i, score });
         }
 
+        // 유사도 계산 시간 측정 종료
+        //auto t_calc_end = std::chrono::high_resolution_clock::now();
+
+        // 정렬 시간 측정 시작
+        //auto t_sort_start = std::chrono::high_resolution_clock::now();
+
         std::sort(results.begin(), results.end(),
             [](const SearchResult& a, const SearchResult& b) {
                 return a.score > b.score;
             });
         
+        // 정렬 시간 측정 종료
+        //auto t_sort_end = std::chrono::high_resolution_clock::now();
+
+        // 시간 계산 (밀리초 단위)
+        //std::chrono::duration<double, std::milli> calc_ms = t_calc_end - t_calc_start;
+        //std::chrono::duration<double, std::milli> sort_ms = t_sort_end - t_sort_start;
+        //double total_ms = calc_ms.count() + sort_ms.count();
+
         auto end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsed_ms = end_time - start_time;
 
         std::stringstream ss;
-        ss << "{ \"results\": [";
+        ss << "{";
+        //ss << "\"calc_ms\": " << std::fixed << std::setprecision(4) << calc_ms.count() << ",";
+        //ss << "\"sort_ms\": " << std::fixed << std::setprecision(4) << sort_ms.count() << ",";
+        ss << "\"time_ms\": " << std::fixed << std::setprecision(4) << elapsed_ms.count() << ",";
+        ss << "\"results\": [";
 
         int limit = std::min(5, NUM_EMBEDDINGS);
         for (int i = 0; i < limit; ++i) {
@@ -86,7 +108,7 @@ extern "C" {
                << "\"score\":" << std::fixed << std::setprecision(4) << results[i].score
                << "}";
         }
-        ss << "], \"time_ms\": " << std::fixed << std::setprecision(4) << elapsed_ms.count() << " }";
+        ss << "] }";
 
         std::string json_str = ss.str();
         char* out = new char[json_str.size() + 1];

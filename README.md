@@ -24,7 +24,7 @@
 
 별도의 설치 없이 웹 링크를 통해 사용할 수 있습니다.
 
-1. **[프로젝트 링크](https://areum0505.github.io/SearchImoji_Wasm/)**에 접속합니다.
+1. [프로젝트 링크](https://areum0505.github.io/SearchImoji_Wasm/)에 접속합니다.
 2. 입력창에 **검색하고 싶은 단어 및 문장**를 입력합니다. 
 3. **`비교 실행`** 버튼을 클릭합니다.
 4. 의미상 가장 유사한 **관련 이모지**가 하단에 출력되는 것을 확인합니다.
@@ -57,9 +57,18 @@ emcc emoji_search.cpp -o emoji_search.js -msimd128 -O3 -s "EXPORTED_FUNCTIONS=['
 
 C++와 JavaScript의 성능 비교 결과입니다.
 
+### 성능 비교
+
 | Process | C++ | JS |
 | :--- | :--- | :--- |
-| **Estimate affine transform matrix** | <1ms | <3ms |
-| **Landmark Normalization** | <1ms | <4ms |
-| **MLP inference** | <5ms | <50ms |
-| **Emoji Image attach** | <21ms | <400ms |
+| **유사도 계산** | 3.9 ms | 5.6 ms |
+| **결과 정렬** | 0.2 ms | 0.5 ms |
+| **총 시간** | 4.1 ms | 6.1 ms |
+
+* C++ 평균 소요 시간: 3.22 ms
+* JS 평균 소요 시간: 6.23 ms
+
+### 측정 환경
+* OS/Browser: Windows 11 / Chrome 142
+* CPU: Intel Core Ultra 5 225H
+* Memory (RAM): 16 GB
