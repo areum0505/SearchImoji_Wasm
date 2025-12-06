@@ -281,6 +281,216 @@
             margin: 5px 0;
             font-size: 1.2em;
         }
+
+        /* 로딩 스피너 */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1e3a8a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 스켈레톤 로딩 */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            height: 150px;
+            margin-bottom: 16px;
+        }
+
+        /* 토스트 알림 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e3a8a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 검색 결과 카운트 */
+        .result-count {
+            margin: 15px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* 이모지 카드 복사 버튼 */
+        .emoji-card {
+            position: relative;
+        }
+
+        .copy-hint {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .emoji-card:hover .copy-hint {
+            opacity: 1;
+        }
+
+        /* 검색 결과 페이드인 */
+        .emoji-card {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 검색 히스토리 */
+        .search-history {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-tag {
+            background: #e5e7eb;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-tag:hover {
+            background: #1e3a8a;
+            color: white;
+        }
+
+        /* 추천 검색어 */
+        .suggestions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-tag {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-tag:hover {
+            background: #1e40af;
+            color: white;
+        }
+
+        /* 빈 결과 메시지 개선 */
+        .empty-result {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-result-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-result-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-result-hint {
+            font-size: 14px;
+            color: #d1d5db;
+        }
+
+        /* 반응형 개선 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .search-container {
+                max-width: 100%;
+            }
+
+            .emoji-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 12px;
+            }
+
+            .compare-section {
+                flex-direction: column;
+            }
+        }
+
+        /* 키보드 단축키 힌트 */
+        .keyboard-hint {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
     </style>
     
     <!-- WASM Module -->
@@ -304,7 +514,7 @@
                 // 비교 탭: WASM vs JS
                 document.getElementById('runBtn').addEventListener('click', async () => {
                     const text = document.getElementById('userInput').value.trim();
-                    if (!text || !window.extractor) return;
+                    if (!text) return;
 
                     document.getElementById('status').innerText = "1/3. 텍스트 임베딩 계산 중...";
                     const output1Div = document.getElementById('output1');
@@ -312,8 +522,11 @@
                     output1Div.innerHTML = "계산 중...";
                     output2Div.innerHTML = "대기 중...";
 
+                    // 필요한 모델 가져오기 (자동 선택)
+                    const extractor = await window.getExtractorForText(text);
+
                     const t0 = performance.now();
-                    const output = await window.extractor(text, { pooling: 'mean', normalize: true });
+                    const output = await extractor(text, { pooling: 'mean', normalize: true });
                     const vector = Array.from(output.data);
                     const t1 = performance.now();
                     const embeddingTime = t1 - t0;
@@ -372,7 +585,7 @@
 
                 // 검색 함수 (공통)
                 async function performSearch(inputText, statusEl, embeddingTimeEl, outputEl) {
-                    if (!inputText || !window.extractor) return;
+                    if (!inputText) return;
 
                     const t = window.translations[window.currentLanguage] || window.translations.ko;
                     statusEl.innerText = t.calculating;
@@ -381,17 +594,22 @@
                     const exampleEmojis = document.getElementById('exampleEmojis');
                     const searchResults = document.getElementById('searchResults');
                     const emptyState = document.getElementById('emptyState');
+                    const resultCount = document.getElementById('resultCount');
                     if (exampleEmojis) exampleEmojis.style.display = 'none';
                     if (emptyState) emptyState.style.display = 'none';
+                    if (resultCount) resultCount.style.display = 'none';
                     if (searchResults) {
                         searchResults.style.display = 'block';
-                        searchResults.innerHTML = `<div style='text-align: center; padding: 40px; color: #999;'>${t.calculating}</div>`;
+                        searchResults.innerHTML = `<div style='text-align: center; padding: 40px;'><div class="spinner"></div><div style='color: #999; margin-top: 10px;'>${t.calculating}</div></div>`;
                     } else {
-                        outputEl.innerHTML = `<div style='text-align: center; padding: 40px; color: #999;'>${t.calculating}</div>`;
+                        outputEl.innerHTML = `<div style='text-align: center; padding: 40px;'><div class="spinner"></div><div style='color: #999; margin-top: 10px;'>${t.calculating}</div></div>`;
                     }
 
+                    // 필요한 모델 가져오기 (자동 선택)
+                    const extractor = await window.getExtractorForText(inputText);
+
                     const t0 = performance.now();
-                    const output = await window.extractor(inputText, { pooling: 'mean', normalize: true });
+                    const output = await extractor(inputText, { pooling: 'mean', normalize: true });
                     const vector = Array.from(output.data);
                     const t1 = performance.now();
                     const embeddingTime = t1 - t0;
@@ -405,6 +623,14 @@
                     const resultsHtml = formatResults(jsResults, true);
                     if (searchResults) {
                         searchResults.innerHTML = resultsHtml;
+                        // 검색 결과 개수 표시
+                        const resultCount = document.getElementById('resultCount');
+                        if (resultCount) {
+                            resultCount.style.display = 'block';
+                            resultCount.textContent = `총 ${jsResults.length}개의 결과를 찾았습니다`;
+                        }
+                        // 검색 히스토리에 추가
+                        addToHistory(inputText);
                     } else if (outputEl) {
                         // outputEl이 있는 경우 (비교 탭 등)
                         outputEl.innerHTML = resultsHtml;
@@ -448,19 +674,29 @@
         };
 
         function formatResults(results, useGrid = true) {
-            if (!results || results.length === 0) return "<div style='text-align: center; padding: 40px; color: #999;'>결과 없음</div>";
+            if (!results || results.length === 0) {
+                return `<div class="empty-result">
+                    <div class="empty-result-icon">😕</div>
+                    <div class="empty-result-text">검색 결과가 없습니다</div>
+                    <div class="empty-result-hint">다른 키워드로 검색해보세요</div>
+                </div>`;
+            }
             
             if (useGrid) {
                 // 그리드 카드 레이아웃
-                const cards = results.map((item) => {
+                const cards = results.map((item, index) => {
                     const meta = window.emojiMetadata[item.index];
                     if (!meta) return '';
                     
                     // 코사인 유사도를 퍼센티지로 변환 (0~1 범위를 0~100%로)
                     const percentage = (item.score * 100).toFixed(1);
                     
+                    // 애니메이션 딜레이 추가
+                    const delay = index * 0.05;
+                    
                     return `
-                        <div class="emoji-card">
+                        <div class="emoji-card" style="animation-delay: ${delay}s;">
+                            <div class="copy-hint">클릭하여 복사</div>
                             <span class="emoji-character">${meta.character}</span>
                             <div class="emoji-description">${meta.description}</div>
                             <div class="emoji-score">${percentage}%</div>
@@ -501,6 +737,9 @@
                 <svg class="search-icon" fill="none" stroke="#666" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
+                <div class="keyboard-hint" style="position: absolute; bottom: -20px; left: 20px; font-size: 11px; color: rgba(255,255,255,0.7);">
+                    Enter로 검색
+                </div>
             </div>
             <div class="header-actions">
                 <div class="language-selector">
@@ -508,10 +747,9 @@
                         <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 2.258c-.29.354-.596.696-.914 1.022a1 1 0 11-1.44-1.389c.314-.314.612-.653.9-1.004A16.979 16.979 0 017 6V3a1 1 0 011-1zm6 0a1 1 0 011 1v1a16.98 16.98 0 011.288 2.258c.29.354.596.696.914 1.022a1 1 0 11-1.44 1.389c-.314-.314-.612-.653-.9-1.004A18.87 18.87 0 0111.578 6H10a1 1 0 110-2h1V3a1 1 0 011-1zM2 9a1 1 0 011-1h.01a1 1 0 110 2H3a1 1 0 01-1-1zm15 0a1 1 0 011-1h.01a1 1 0 110 2H18a1 1 0 01-1-1zm-6 0a1 1 0 011-1h.01a1 1 0 110 2H12a1 1 0 01-1-1zM7 13a1 1 0 011-1h.01a1 1 0 110 2H8a1 1 0 01-1-1zm6 0a1 1 0 011-1h.01a1 1 0 110 2H14a1 1 0 01-1-1zm-3 0a1 1 0 011-1h.01a1 1 0 110 2H12a1 1 0 01-1-1z" clip-rule="evenodd"></path>
                     </svg>
                     <select id="languageSelect" class="language-select">
+                        <option value="auto">통합 (자동)</option>
                         <option value="ko">한국어</option>
                         <option value="en">English</option>
-                        <option value="ja">日本語</option>
-                        <option value="zh">中文</option>
                     </select>
                 </div>
                 <svg class="header-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -539,14 +777,21 @@
             <div id="simpleEmbeddingTime" style="margin-top: 10px; font-size: 0.9em; color: green;"></div>
 
             <div id="simpleOutput" style="margin-top: 20px;">
+                <div id="resultCount" class="result-count" style="display: none;"></div>
                 <div id="exampleEmojis" class="emoji-grid" style="display: none;">
                     <!-- 예시 이모지가 여기에 동적으로 표시됩니다 -->
                 </div>
                 <div id="searchResults" style="display: none;"></div>
                 <div id="emptyState" style="text-align: center; padding: 40px; color: #999;">
-                    검색 결과가 여기에 표시됩니다.
+                    <div class="empty-result">
+                        <div class="empty-result-icon">🔍</div>
+                        <div class="empty-result-text">검색 결과가 여기에 표시됩니다</div>
+                        <div class="empty-result-hint">위 검색창에서 이모지를 검색해보세요</div>
+                    </div>
                 </div>
             </div>
+            <div id="searchHistory" class="search-history" style="display: none;"></div>
+            <div id="suggestions" class="suggestions"></div>
         </div>
 
     <!-- WASM vs JS 비교 탭 -->
@@ -554,21 +799,21 @@
         <p style="margin-bottom: 15px; color: #6b7280;">동일한 문장 임베딩을 이용하여 WASM과 JavaScript 계산 속도를 비교합니다.</p>
 
         <div class="search-section">
-            <input type="text" id="userInput" placeholder="검색어를 입력하세요...">
-            <button id="runBtn" disabled>비교 실행</button>
-        </div>
+        <input type="text" id="userInput" placeholder="검색어를 입력하세요...">
+        <button id="runBtn" disabled>비교 실행</button>
+    </div>
 
-        <div id="status">초기화 시작: 메타데이터 로딩 (1/3), 모델 로딩 (2/3)</div>
+    <div id="status">초기화 시작: 메타데이터 로딩 (1/3), 모델 로딩 (2/3)</div>
         <div id="embeddingTime"></div>
 
         <div class="compare-section">
             <div class="compare-column">
-                <h4>WASM 계산 결과</h4>
-                <div id="output1" class="output-container">결과가 여기에 표시됩니다.</div>
-            </div>
+            <h4>WASM 계산 결과</h4>
+            <div id="output1" class="output-container">결과가 여기에 표시됩니다.</div>
+        </div>
             <div class="compare-column">
-                <h4>JavaScript 계산 결과</h4>
-                <div id="output2" class="output-container">결과가 여기에 표시됩니다.</div>
+            <h4>JavaScript 계산 결과</h4>
+            <div id="output2" class="output-container">결과가 여기에 표시됩니다.</div>
             </div>
         </div>
     </div>
@@ -609,42 +854,38 @@
                 calculating: "Calculating...",
                 searchComplete: "Search complete!",
                 compareComplete: "Compare complete!"
-            },
-            ja: {
-                searchPlaceholder: "絵文字を検索...",
-                tabSimple: "検索のみ",
-                tabCompare: "WASM vs JS 比較",
-                emptyState: "検索結果がここに表示されます。",
-                compareDescription: "同じ文の埋め込みを使用して、WASMとJavaScriptの計算速度を比較します。",
-                userInputPlaceholder: "検索語を入力...",
-                compareButton: "比較実行",
-                wasmResult: "WASM計算結果",
-                jsResult: "JavaScript計算結果",
-                loadingMetadata: "初期化: メタデータ読み込み中 (1/3), モデル読み込み中 (2/3)",
-                ready: "準備完了！",
-                searchAvailable: "個の絵文字が検索可能",
-                calculating: "計算中...",
-                searchComplete: "検索完了！",
-                compareComplete: "比較完了！"
-            },
-            zh: {
-                searchPlaceholder: "搜索表情符号...",
-                tabSimple: "仅搜索",
-                tabCompare: "WASM vs JS 比较",
-                emptyState: "搜索结果将显示在这里。",
-                compareDescription: "使用相同的句子嵌入来比较WASM和JavaScript的计算速度。",
-                userInputPlaceholder: "输入搜索词...",
-                compareButton: "运行比较",
-                wasmResult: "WASM计算结果",
-                jsResult: "JavaScript计算结果",
-                loadingMetadata: "初始化：加载元数据 (1/3)，加载模型 (2/3)",
-                ready: "全部准备就绪！",
-                searchAvailable: "个表情符号可供搜索",
-                calculating: "计算中...",
-                searchComplete: "搜索完成！",
-                compareComplete: "比较完成！"
             }
         };
+
+        // 모델 매핑
+        const modelMap = {
+            'ko': 'Xenova/paraphrase-multilingual-mpnet-base-v2',  // 한국어: 다국어 모델
+            'en': 'Xenova/all-mpnet-base-v2'                        // 영어: 영어 전용 모델
+        };
+
+        // 언어 감지 함수 (간단한 휴리스틱)
+        function detectLanguage(text) {
+            if (!text || text.trim().length === 0) return 'en';
+            
+            // 한글 유니코드 범위: AC00-D7AF
+            const koreanRegex = /[가-힣]/;
+            // 영어 알파벳
+            const englishRegex = /[a-zA-Z]/;
+            
+            let koreanCount = 0;
+            let englishCount = 0;
+            
+            for (let char of text) {
+                if (koreanRegex.test(char)) {
+                    koreanCount++;
+                } else if (englishRegex.test(char)) {
+                    englishCount++;
+                }
+            }
+            
+            // 한글이 더 많으면 한국어, 아니면 영어
+            return koreanCount > englishCount ? 'ko' : 'en';
+        }
 
         // 현재 언어 (기본값: 한국어) - 전역 접근 가능하도록
         window.currentLanguage = 'ko';
@@ -652,8 +893,16 @@
 
         // 언어 변경 함수
         function changeLanguage(lang) {
-            window.currentLanguage = lang;
-            const t = translations[lang] || translations.ko;
+            // 'auto'는 UI 언어만 변경하고, 모델은 검색 시 자동 선택
+            if (lang === 'auto') {
+                // 기본 UI 언어는 한국어
+                window.currentLanguage = 'ko';
+                window.selectedLanguageMode = 'auto';
+            } else {
+                window.currentLanguage = lang;
+                window.selectedLanguageMode = lang;
+            }
+            const t = translations[window.currentLanguage] || translations.ko;
 
             // 헤더 검색바 placeholder
             const headerSearchInput = document.getElementById('headerSearchInput');
@@ -707,10 +956,11 @@
         // 언어 선택 드롭다운 이벤트
         document.addEventListener('DOMContentLoaded', () => {
             // 저장된 언어 설정 불러오기
-            const savedLang = localStorage.getItem('preferredLanguage') || 'ko';
+            const savedLang = localStorage.getItem('preferredLanguage') || 'auto';
             const languageSelect = document.getElementById('languageSelect');
             if (languageSelect) {
                 languageSelect.value = savedLang;
+                window.selectedLanguageMode = savedLang;
                 changeLanguage(savedLang);
 
                 languageSelect.addEventListener('change', (e) => {
@@ -847,6 +1097,10 @@
                 window.emojiMetadata = data;
                 // 언어별 메시지는 동적으로 업데이트되므로 기본 메시지 유지
                 statusDiv.innerText = `1/3. 메타데이터 로드 완료 (${data.length}개)`;
+                // 메타데이터 로드 후 추천어 업데이트
+                if (window.updateSuggestions) {
+                    window.updateSuggestions();
+                }
             } catch (err) {
                 statusDiv.innerText = `오류 (1/3): CSV 로드 실패 (${err.message})`;
                 statusDiv.style.color = "red";
@@ -854,9 +1108,12 @@
             }
         }
 
-        async function loadTransformerModel() {
+        // 모델 로드 함수
+        async function loadTransformerModel(modelName) {
             try {
-                window.extractor = await pipeline('feature-extraction', 'Xenova/all-mpnet-base-v2');
+                statusDiv.innerText = "2/3. 임베딩 모델 로드 중...";
+                window.extractor = await pipeline('feature-extraction', modelName);
+                window.currentModel = modelName;
                 statusDiv.innerText = "2/3. 임베딩 모델 로딩 완료";
             } catch (err) {
                 statusDiv.innerText = `오류 (2/3): 모델 로드 실패 (${err.message})`;
@@ -865,13 +1122,48 @@
             }
         }
 
+        // 검색에 필요한 모델 가져오기 (필요시 로드) - 전역으로 노출
+        window.getExtractorForText = async function(text) {
+            // 언어 모드 확인
+            const mode = window.selectedLanguageMode || 'auto';
+            let targetLang = mode;
+            
+            // 자동 모드면 언어 감지
+            if (mode === 'auto') {
+                targetLang = detectLanguage(text);
+            }
+            
+            const requiredModel = modelMap[targetLang] || modelMap['en'];
+            
+            // 현재 모델이 필요한 모델과 다르면 로드
+            if (!window.extractor || window.currentModel !== requiredModel) {
+                const statusDiv = document.getElementById('status');
+                const simpleStatusDiv = document.getElementById('simpleStatus');
+                const statusEl = simpleStatusDiv || statusDiv;
+                
+                if (statusEl) {
+                    statusEl.innerText = `모델 로드 중... (${targetLang === 'ko' ? '다국어' : '영어'} 모델)`;
+                    statusEl.style.color = "blue";
+                }
+                
+                await loadTransformerModel(requiredModel);
+                
+                if (statusEl) {
+                    statusEl.style.color = "green";
+                }
+            }
+            
+            return window.extractor;
+        };
+
         (async () => {
             try {
                 statusDiv.innerText = "1/3. 이모지 메타데이터 로드 중...";
                 await loadEmojiMetadata(CSV_FILE_PATH);
 
                 statusDiv.innerText = "2/3. 임베딩 모델 로드 중...";
-                await loadTransformerModel();
+                // 초기 모델은 다국어 모델로 로드 (한국어 지원)
+                await loadTransformerModel(modelMap['ko']);
 
                 window.checkReady();
 
@@ -879,6 +1171,197 @@
                 console.error("초기화 오류:", err);
             }
         })();
+    </script>
+
+    <!-- 토스트 알림 -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // 토스트 알림 표시
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 클립보드 복사
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast(`복사됨: ${text}`);
+            } catch (err) {
+                // 폴백: 텍스트 영역 사용
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(`복사됨: ${text}`);
+                } catch (e) {
+                    showToast('복사 실패');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // 검색 히스토리 관리
+        const searchHistory = JSON.parse(localStorage.getItem('emojiSearchHistory') || '[]');
+        const maxHistory = 10;
+
+        function addToHistory(query) {
+            if (!query || query.trim().length === 0) return;
+            
+            // 중복 제거
+            const index = searchHistory.indexOf(query);
+            if (index > -1) {
+                searchHistory.splice(index, 1);
+            }
+            
+            // 앞에 추가
+            searchHistory.unshift(query);
+            
+            // 최대 개수 제한
+            if (searchHistory.length > maxHistory) {
+                searchHistory.pop();
+            }
+            
+            localStorage.setItem('emojiSearchHistory', JSON.stringify(searchHistory));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('searchHistory');
+            if (!historyDiv) return;
+            
+            if (searchHistory.length === 0) {
+                historyDiv.style.display = 'none';
+                return;
+            }
+            
+            historyDiv.style.display = 'flex';
+            historyDiv.innerHTML = '<span style="font-size: 12px; color: #6b7280; margin-right: 8px;">최근 검색:</span>' +
+                searchHistory.slice(0, 5).map(query => 
+                    `<span class="history-tag" onclick="document.getElementById('headerSearchInput').value='${query}'; document.querySelector('.search-icon').click();">${query}</span>`
+                ).join('');
+        }
+
+        // 추천 검색어 생성 함수 (이모지 메타데이터 기반)
+        function generateSuggestionsFromMetadata() {
+            if (!window.emojiMetadata || window.emojiMetadata.length === 0) {
+                // 폴백: 기본 추천어
+                return {
+                    ko: ['행복한', '슬픈', '음식', '동물', '사랑', '축하', '감사', '인사'],
+                    en: ['happy', 'sad', 'food', 'animal', 'love', 'celebration', 'thanks', 'greeting']
+                };
+            }
+
+            // 이모지 설명에서 키워드 추출
+            const keywordCount = {};
+            const commonWords = new Set(['의', '을', '를', '이', '가', '는', '은', '에', '에서', '와', '과', '로', '으로', 'the', 'a', 'an', 'is', 'are', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for']);
+            
+            window.emojiMetadata.forEach(meta => {
+                if (!meta.description) return;
+                
+                // 설명을 단어로 분리
+                const words = meta.description.toLowerCase()
+                    .replace(/[^\w\s가-힣]/g, ' ') // 특수문자 제거
+                    .split(/\s+/)
+                    .filter(word => word.length > 1 && !commonWords.has(word));
+                
+                words.forEach(word => {
+                    keywordCount[word] = (keywordCount[word] || 0) + 1;
+                });
+            });
+
+            // 빈도순으로 정렬
+            const sortedKeywords = Object.entries(keywordCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 30)
+                .map(([word]) => word);
+
+            // 언어별로 분류
+            const koKeywords = sortedKeywords.filter(w => /[가-힣]/.test(w)).slice(0, 8);
+            const enKeywords = sortedKeywords.filter(w => /[a-zA-Z]/.test(w)).slice(0, 8);
+
+            return {
+                ko: koKeywords.length > 0 ? koKeywords : ['행복한', '슬픈', '음식', '동물', '사랑', '축하', '감사', '인사'],
+                en: enKeywords.length > 0 ? enKeywords : ['happy', 'sad', 'food', 'animal', 'love', 'celebration', 'thanks', 'greeting']
+            };
+        }
+
+        function updateSuggestions() {
+            const suggestionsDiv = document.getElementById('suggestions');
+            if (!suggestionsDiv) return;
+            
+            const lang = window.currentLanguage || 'ko';
+            
+            // 이모지 메타데이터에서 추천어 생성
+            const suggestions = generateSuggestionsFromMetadata();
+            const langSuggestions = lang === 'ko' ? suggestions.ko : suggestions.en;
+            
+            if (langSuggestions.length === 0) {
+                suggestionsDiv.innerHTML = '';
+                return;
+            }
+            
+            suggestionsDiv.innerHTML = '<span style="font-size: 12px; color: #6b7280; margin-right: 8px;">추천:</span>' +
+                langSuggestions.slice(0, 6).map(s => 
+                    `<span class="suggestion-tag" onclick="document.getElementById('headerSearchInput').value='${s}'; document.querySelector('.search-icon').click();">${s}</span>`
+                ).join('');
+        }
+
+        // 이모지 카드 클릭 이벤트 추가
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.emoji-card');
+            if (card) {
+                const emoji = card.querySelector('.emoji-character')?.textContent;
+                if (emoji) {
+                    copyToClipboard(emoji);
+                }
+            }
+        });
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            // Enter로 검색
+            if (e.key === 'Enter' && (e.target.id === 'headerSearchInput' || e.target.id === 'userInput')) {
+                e.preventDefault();
+                if (e.target.id === 'headerSearchInput') {
+                    document.querySelector('.search-icon')?.click();
+                } else {
+                    document.getElementById('runBtn')?.click();
+                }
+            }
+            
+            // ESC로 초기화
+            if (e.key === 'Escape' && document.activeElement.tagName === 'INPUT') {
+                document.activeElement.value = '';
+                document.activeElement.blur();
+            }
+        });
+
+        // 추천어 업데이트 함수를 전역으로 노출
+        window.updateSuggestions = updateSuggestions;
+
+        // 초기화 시 히스토리와 추천어 표시
+        document.addEventListener('DOMContentLoaded', () => {
+            updateHistoryDisplay();
+            // 메타데이터가 로드되면 updateSuggestions가 호출됨
+            // 여기서는 빈 상태로 시작
+        });
+
+        // 검색 함수 수정 - 히스토리 추가
+        const originalPerformSearch = window.Module?.onRuntimeInitialized;
+        if (originalPerformSearch) {
+            // 검색 성공 시 히스토리에 추가하도록 수정
+            // 이 부분은 performSearch 함수 내부에서 처리
+        }
     </script>
 </body>
 </html>
