@@ -40,6 +40,8 @@ double cosineSimilarity(const double* dbVec, const double* queryVec) {
 }
 
 // -------------------- WASM 함수 --------------------
+constexpr int TOP_N = 5;
+
 extern "C" {
 
     const char* search_emojis(const double* query_vector) {
@@ -63,12 +65,31 @@ extern "C" {
         // 유사도 계산 시간 측정 시작
         //auto t_calc_start = std::chrono::high_resolution_clock::now();
 
-        std::vector<SearchResult> results;
-        results.reserve(NUM_EMBEDDINGS);
+        std::vector<SearchResult> top_results;
+        top_results.reserve(TOP_N);
 
         for (int i = 0; i < NUM_EMBEDDINGS; ++i) {
             double score = cosineSimilarity(EMBEDDINGS[i], query_vector);
-            results.push_back({ i, score });
+
+            if (top_results.size() < TOP_N) {
+                top_results.push_back({i, score});
+                if (top_results.size() == TOP_N) {
+                    std::sort(top_results.begin(), top_results.end(),
+                              [](const SearchResult& a, const SearchResult& b) {
+                                  return a.score > b.score;
+                              });
+                }
+            } else {
+                if (score > top_results.back().score) {
+                    top_results.pop_back();
+                    
+                    auto it = std::lower_bound(top_results.begin(), top_results.end(), score, 
+                        [](const SearchResult& result, double val) {
+                            return result.score > val;
+                        });
+                    top_results.insert(it, {i, score});
+                }
+            }
         }
 
         // 유사도 계산 시간 측정 종료
@@ -77,11 +98,14 @@ extern "C" {
         // 정렬 시간 측정 시작
         //auto t_sort_start = std::chrono::high_resolution_clock::now();
 
-        std::sort(results.begin(), results.end(),
-            [](const SearchResult& a, const SearchResult& b) {
-                return a.score > b.score;
-            });
-        
+        // 이모지 개수가 TOP_N보다 적을 경우를 위한 최종 정렬
+        if (top_results.size() < TOP_N) {
+             std::sort(top_results.begin(), top_results.end(),
+                              [](const SearchResult& a, const SearchResult& b) {
+                                  return a.score > b.score;
+                              });
+        }
+
         // 정렬 시간 측정 종료
         //auto t_sort_end = std::chrono::high_resolution_clock::now();
 
@@ -100,12 +124,12 @@ extern "C" {
         ss << "\"time_ms\": " << std::fixed << std::setprecision(4) << elapsed_ms.count() << ",";
         ss << "\"results\": [";
 
-        int limit = std::min(5, NUM_EMBEDDINGS);
+        int limit = std::min((int)top_results.size(), NUM_EMBEDDINGS);
         for (int i = 0; i < limit; ++i) {
             if (i > 0) ss << ",";
             ss << "{"
-               << "\"index\":" << results[i].index << ","
-               << "\"score\":" << std::fixed << std::setprecision(4) << results[i].score
+               << "\"index\":" << top_results[i].index << ","
+               << "\"score\":" << std::fixed << std::setprecision(4) << top_results[i].score
                << "}";
         }
         ss << "] }";
