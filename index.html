@@ -671,14 +671,6 @@
                     performSearch(text, statusEl, embeddingTimeEl, outputEl);
                 };
 
-                if (headerSearchInput) {
-                    headerSearchInput.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            handleHeaderSearch();
-                        }
-                    });
-                }
-
                 if (headerSearchIcon) {
                     headerSearchIcon.addEventListener('click', handleHeaderSearch);
                 }
@@ -749,9 +741,6 @@
                 <svg class="search-icon" fill="none" stroke="#666" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                <div class="keyboard-hint" style="position: absolute; bottom: -20px; left: 20px; font-size: 11px; color: rgba(255,255,255,0.7);">
-                    Enter로 검색
-                </div>
             </div>
             <div class="header-actions">
                 <div class="language-selector">
@@ -997,6 +986,33 @@
                         targetContent.classList.add('active');
                     }
                 });
+            });
+
+            // 키보드 이벤트 리스너 (Enter로 검색, ESC로 초기화)
+            document.addEventListener('keydown', (e) => {
+                // Enter 키로 검색 실행
+                if (e.key === 'Enter') {
+                    if (e.target.id === 'headerSearchInput') {
+                        e.preventDefault();
+                        const searchIcon = document.querySelector('.search-icon');
+                        if (searchIcon) {
+                            searchIcon.dispatchEvent(new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            }));
+                        }
+                    } else if (e.target.id === 'userInput') {
+                        e.preventDefault();
+                        document.getElementById('runBtn')?.click();
+                    }
+                }
+                
+                // ESC 키로 입력창 내용 지우기
+                if (e.key === 'Escape' && e.target.tagName === 'INPUT') {
+                    e.target.value = '';
+                    e.target.blur();
+                }
             });
         });
     </script>
@@ -1336,25 +1352,6 @@
                 if (emoji) {
                     copyToClipboard(emoji);
                 }
-            }
-        });
-
-        // 키보드 단축키
-        document.addEventListener('keydown', (e) => {
-            // Enter로 검색
-            if (e.key === 'Enter' && (e.target.id === 'headerSearchInput' || e.target.id === 'userInput')) {
-                e.preventDefault();
-                if (e.target.id === 'headerSearchInput') {
-                    document.querySelector('.search-icon')?.click();
-                } else {
-                    document.getElementById('runBtn')?.click();
-                }
-            }
-            
-            // ESC로 초기화
-            if (e.key === 'Escape' && document.activeElement.tagName === 'INPUT') {
-                document.activeElement.value = '';
-                document.activeElement.blur();
             }
         });
 
