@@ -149,6 +149,10 @@ emcc emoji_search.cpp -o emoji_search.js -msimd128 -O3 -s "EXPORTED_FUNCTIONS=['
 C++와 JavaScript의 성능 비교 결과입니다.
 
 ### 성능 비교
+<details>
+<summary>최적화 이전</summary>
+
+<br>
 
 | Process | C++ | JS |
 | :--- | :--- | :--- |
@@ -158,6 +162,18 @@ C++와 JavaScript의 성능 비교 결과입니다.
 
 * C++ 평균 소요 시간: 3.22 ms
 * JS 평균 소요 시간: 6.23 ms
+</details>
+
+---
+
+| Process | C++ | JS |
+| :--- | :--- | :--- |
+| **유사도 계산** | 1.5 ms | 2.7 ms |
+| **총 시간** | 1.5 ms | 2.7 ms |
+
+* C++ 평균 소요 시간: 1.78 ms
+* JS 평균 소요 시간: 2.65 ms
+
 
 ### 측정 환경
 * OS/Browser: Windows 11 / Chrome 142
