@@ -121,7 +121,7 @@ double cosineSimilarity(const double* dbVec, double dbMag, const double* queryVe
 본 프로젝트는 성능 향상을 위해 다음과 같은 최적화 기술을 적용하였습니다.
 
 ### C++/JavaScript 알고리즘 최적화
-- **벡터 크기(Magnitude) 캐싱**: 이모지 임베딩 데이터는 변하지 않으므로, 유사도 계산에 필요한 각 벡터의 크기(magnitude)를 매번 계산하는 대신 최초 실행 시 한 번만 계산하여 `static` 변수에 캐시합니다. 이를 통해 비용이 큰 `sqrt` 연산을 수천 번 반복하는 것을 방지하여 C++와 JavaScript 양쪽 모두에서 검색 속도를 크게 향상시켰습니다.
+- **벡터 크기 사전 캐싱**: 이모지 임베딩 데이터는 변하지 않으므로, 유사도 계산에 필요한 각 벡터의 크기를 계산하는 과정은 비용이 큽니다. **WASM 모듈이 로드되는 시점에 미리 계산**하여 캐시에 저장합니다. 이를 통해 비용이 큰 `sqrt` 연산을 수천 번 반복하는 것을 방지하였고, 첫 검색 시 발생하던 지연 시간을 제거하여 사용자는 C++(WASM)의 빠른 성능을 첫 검색부터 경험할 수 있습니다.
 - **최소 힙(Min-Heap) 사용**: 상위 5개 결과를 찾기 위해 C++에서는 `std::priority_queue`를, JavaScript에서는 `sort`를 이용한 효율적인 배열 관리를 통해 전체 결과를 매번 정렬할 필요 없이 O(log N) 또는 그에 준하는 복잡도로 상위 N개를 효율적으로 유지합니다.
 
 ### 128-bit SIMD 최적화 활성화
@@ -129,7 +129,7 @@ double cosineSimilarity(const double* dbVec, double dbMag, const double* queryVe
 
 #### 빌드 명령어
 ```
-emcc emoji_search.cpp -o emoji_search.js -msimd128 -O3 -s "EXPORTED_FUNCTIONS=['_search_emojis', '_free_result_memory', '_malloc', '_free']" -s "EXPORTED_RUNTIME_METHODS=['cwrap', 'ccall', 'getValue', 'UTF8ToString', 'setValue']" -s MODULARIZE=0 -s ENVIRONMENT='web' -s ALLOW_MEMORY_GROWTH=1 -s WASM=1 -I.
+emcc emoji_search.cpp -o emoji_search.js -msimd128 -O3 -s "EXPORTED_FUNCTIONS=['_search_emojis', '_free_result_memory', '_precalculate_db_magnitudes', '_malloc', '_free']" -s "EXPORTED_RUNTIME_METHODS=['cwrap', 'ccall', 'getValue', 'UTF8ToString', 'setValue']" -s MODULARIZE=0 -s ENVIRONMENT='web' -s ALLOW_MEMORY_GROWTH=1 -s WASM=1 -I.
 ```
 
 ---

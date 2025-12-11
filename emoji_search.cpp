@@ -59,7 +59,23 @@ double cosineSimilarity(const double* dbVec, double dbMag, const double* queryVe
 // -------------------- WASM 함수 --------------------
 constexpr int TOP_N = 5;
 
+// 데이터베이스 임베딩의 크기를 미리 계산하여 캐시하는 전역 변수입니다.
+static std::vector<double> db_magnitudes;
+
 extern "C" {
+
+/**
+ * @brief 데이터베이스 임베딩의 크기를 미리 계산하여 캐시합니다.
+ *        이 함수는 WASM 모듈 로딩 직후 한 번만 호출되어야 합니다.
+ */
+void precalculate_db_magnitudes() {
+    if (db_magnitudes.empty()) {
+        db_magnitudes.reserve(NUM_EMBEDDINGS);
+        for (int i = 0; i < NUM_EMBEDDINGS; ++i) {
+            db_magnitudes.push_back(calculateMagnitude(EMBEDDINGS[i]));
+        }
+    }
+}
 
 /**
  * @brief 쿼리 벡터와 전체 임베딩 데이터를 사용하여 유사도 검색을 수행합니다.
@@ -75,8 +91,8 @@ extern "C" {
             return alloc;
         }
 
-        if (NUM_EMBEDDINGS == 0) {
-            const char* err = "{\"error\":\"Emoji database is empty\"}";
+        if (NUM_EMBEDDINGS == 0 || db_magnitudes.empty()) {
+            const char* err = "{\"error\":\"Emoji database or magnitudes cache is not initialized\"}";
             char* alloc = new char[strlen(err) + 1];
             strcpy(alloc, err);
             return alloc;
@@ -84,15 +100,6 @@ extern "C" {
 
         // 전체 처리 시간 측정 시작
         auto start_time = std::chrono::high_resolution_clock::now();
-
-        // 데이터베이스 임베딩의 크기를 미리 계산하여 캐시합니다.
-        static std::vector<double> db_magnitudes; // static 변수 사용
-        if (db_magnitudes.empty()) {
-            db_magnitudes.reserve(NUM_EMBEDDINGS);
-            for (int i = 0; i < NUM_EMBEDDINGS; ++i) {
-                db_magnitudes.push_back(calculateMagnitude(EMBEDDINGS[i]));
-            }
-        }
 
         // 쿼리 벡터의 크기 계산
         double query_mag = calculateMagnitude(query_vector);

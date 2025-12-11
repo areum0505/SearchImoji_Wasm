@@ -502,12 +502,23 @@
     <script>
         window.Module = {
             onRuntimeInitialized: function() {
-                document.getElementById('status').innerText = "3/3. WASM 모듈 로딩 완료.";
-
+                document.getElementById('status').innerText = "2/3. WASM 모듈 로딩 완료. 캐시 초기화 중...";
                 window.WASM_Module = window.Module;
 
+                // WASM 함수 래핑
                 const searchEmojisWASM = window.WASM_Module.cwrap('search_emojis', 'number', ['number']);
                 const freeResultMemoryWASM = window.WASM_Module.cwrap('free_result_memory', null, ['number']);
+                const precalculateMagnitudesWASM = window.WASM_Module.cwrap('precalculate_db_magnitudes', null, []);
+
+                // WASM 임베딩 크기 캐시를 미리 계산합니다.
+                try {
+                    precalculateMagnitudesWASM();
+                    document.getElementById('status').innerText = "3/3. WASM 캐시 초기화 완료.";
+                } catch(e) {
+                    console.error("WASM 캐시 초기화 실패:", e);
+                    document.getElementById('status').innerText = "오류: WASM 캐시 초기화 실패";
+                    document.getElementById('status').style.color = "red";
+                }
 
                 if (window.checkReady) window.checkReady();
 
