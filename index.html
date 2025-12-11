@@ -209,6 +209,96 @@
             color: #10b981;
         }
 
+        /* 마인드맵 스타일 */
+        .mindmap-container {
+            width: 100%;
+            height: 400px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 마인드맵 SVG 요소 */
+        .mindmap-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .mindmap-link {
+            stroke: #94a3b8;
+            stroke-width: 2;
+            transition: stroke 0.3s;
+        }
+
+        .mindmap-link-hover-area {
+            stroke: transparent;
+            stroke-width: 15;
+            cursor: pointer;
+        }
+
+        .mindmap-link-hover-area:hover + .mindmap-link {
+            stroke: #3b82f6;
+            stroke-width: 3;
+        }
+
+        .mindmap-node-center {
+            fill: #1e3a8a;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .mindmap-node-emoji {
+            fill: white;
+            cursor: pointer;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: transform 0.2s;
+        }
+
+        .mindmap-node-emoji:hover {
+            transform: scale(1.1);
+        }
+
+        .mindmap-text {
+            font-size: 14px;
+            font-weight: bold;
+            fill: white;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+
+        .mindmap-emoji-text {
+            font-size: 18px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+        
+        .mindmap-label {
+            font-size: 11px;
+            fill: #64748b;
+            text-anchor: middle;
+        }
+
+        /* 툴팁 */
+        .svg-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
         /* 이모지 그리드 카드 레이아웃 */
         .emoji-grid {
             display: grid;
@@ -483,6 +573,10 @@
             .compare-section {
                 flex-direction: column;
             }
+            
+            .mindmap-container {
+                height: 300px;
+            }
         }
 
         /* 키보드 단축키 힌트 */
@@ -493,10 +587,8 @@
         }
     </style>
     
-    <!-- WASM Module -->
     <script src="./emoji.js"></script>
 
-    <!-- JS 버전 계산기 -->
     <script src="./emoji_search_js.js"></script>
 
     <script>
@@ -511,10 +603,84 @@
 
                 if (window.checkReady) window.checkReady();
 
+                // [최적화 1] 데이터 전처리: Float32Array로 평탄화 (앱 시작 시 1회 실행)
+                window.prepareEmbeddings = function() {
+                    if (window.isEmbeddingsOptimized) return;
+                    
+                    if (!window.EMBEDDINGS || window.EMBEDDINGS.length === 0) {
+                        console.error("EMBEDDINGS 데이터가 없습니다.");
+                        return;
+                    }
+
+                    // 이미 평탄화된 데이터인지 확인 (숫자인 경우)
+                    if (typeof window.EMBEDDINGS[0] === 'number') {
+                        window.flatEmbeddings = new Float32Array(window.EMBEDDINGS);
+                        window.embeddingDim = window.EMBEDDINGS.length / window.emojiMetadata.length; // 차원 역계산
+                    } else {
+                        // 2차원 배열(Array of Arrays)인 경우 -> Float32Array로 평탄화
+                        const numItems = window.EMBEDDINGS.length;
+                        const dim = window.EMBEDDINGS[0].length;
+                        window.embeddingDim = dim;
+                        window.flatEmbeddings = new Float32Array(numItems * dim);
+                        
+                        for (let i = 0; i < numItems; i++) {
+                            window.flatEmbeddings.set(window.EMBEDDINGS[i], i * dim);
+                        }
+                    }
+                    
+                    window.isEmbeddingsOptimized = true;
+                    // console.log("임베딩 데이터 최적화 완료 (Float32Array)");
+                };
+
+                // [최적화 2] 최적화된 JS 검색 함수
+                function optimizedSearchJS(queryVector) {
+                    const t0 = performance.now();
+                    
+                    if (!window.isEmbeddingsOptimized) {
+                        window.prepareEmbeddings();
+                    }
+
+                    const flatData = window.flatEmbeddings;
+                    const dim = window.embeddingDim;
+                    const numItems = flatData.length / dim;
+                    
+                    // 결과를 담을 배열 미리 할당 (메모리 재할당 방지)
+                    const scores = new Array(numItems);
+
+                    // 메인 루프: 1차원 배열 순회 (CPU 캐시 효율 극대화)
+                    for (let i = 0; i < numItems; i++) {
+                        let dot = 0;
+                        const offset = i * dim;
+                        
+                        // 벡터 내적 계산 (Loop Unrolling 효과 기대)
+                        for (let j = 0; j < dim; j++) {
+                            dot += queryVector[j] * flatData[offset + j];
+                        }
+                        
+                        // 객체 생성 비용을 줄이기 위해 일단 점수만 계산하거나, 
+                        // 필요한 객체 구조를 최소화
+                        scores[i] = { index: i, score: dot };
+                    }
+
+                    // 정렬: V8 엔진의 Timsort는 매우 빠름
+                    scores.sort((a, b) => b.score - a.score);
+                    
+                    const t1 = performance.now();
+                    
+                    return {
+                        results: scores.slice(0, 30), // 마인드맵을 위해 넉넉히 30개 반환 (화면 표시시 자름)
+                        time_ms: t1 - t0
+                    };
+                }
+
                 // 비교 탭: WASM vs JS
                 document.getElementById('runBtn').addEventListener('click', async () => {
                     const text = document.getElementById('userInput').value.trim();
                     if (!text) return;
+
+                    // 마인드맵 및 결과창 초기화
+                    document.getElementById('mindmapCompare').innerHTML = '';
+                    document.getElementById('mindmapCompare').style.display = 'none';
 
                     document.getElementById('status').innerText = "1/3. 텍스트 임베딩 계산 중...";
                     const output1Div = document.getElementById('output1');
@@ -536,6 +702,7 @@
                     document.getElementById('status').innerText = "2/3. WASM 계산 중...";
                     let wasmPtr = 0;
                     let resultPtr = 0;
+                    let wasmResults = [];
 
                     try {
                         wasmPtr = window.WASM_Module._malloc(vector.length * 8);
@@ -546,20 +713,15 @@
                         resultPtr = searchEmojisWASM(wasmPtr);
                         const resultJsonString = window.WASM_Module.UTF8ToString(resultPtr);
                         const resultData = JSON.parse(resultJsonString);
-                        const wasmResults = resultData.results; 
-                        const wasmCallTime = resultData.time_ms; // C++에서 측정된 시간
-
-                        // WASM 측정 결과 콘솔 출력
-                        // console.log("WASM 상세 분석:", resultData);
-                        // console.log(`- 계산 시간: ${resultData.calc_ms} ms`);
-                        // console.log(`- 정렬 시간: ${resultData.sort_ms} ms`);
-                        // console.log(`- 총 시간: ${resultData.time_ms} ms`);
+                        wasmResults = resultData.results; 
+                        const wasmCallTime = resultData.time_ms;
 
                         let htmlOutput1 = `
                             <div style="font-size: 0.9em; color: #333;">
                                 • WASM 계산 시간: <b>${wasmCallTime.toFixed(2)} ms</b>
                             </div><hr>`;
-                        htmlOutput1 += formatResults(wasmResults, false);
+                        // WASM 결과도 5개로 제한하여 출력
+                        htmlOutput1 += formatResults(wasmResults.slice(0, 5), false);
                         output1Div.innerHTML = htmlOutput1;
 
                     } catch (error) {
@@ -574,22 +736,21 @@
                     document.getElementById('status').innerText = "3/3. JavaScript 계산 중...";
                     output2Div.innerHTML = "계산 중...";
 
-                    const jsResponse = searchEmojisJS(vector); // { results: [], time_ms: N }
+                    // 최적화된 JS 함수 사용
+                    const jsResponse = optimizedSearchJS(vector); 
                     const jsResults = jsResponse.results;
                     const jsCallTime = jsResponse.time_ms;
-
-                    // JS 측정 결과 콘솔 출력
-                    // console.log("JS 상세 분석:", jsResponse);
-                    // console.log(`- 계산 시간: ${jsResponse.calc_ms.toFixed(4)} ms`);
-                    // console.log(`- 정렬 시간: ${jsResponse.sort_ms.toFixed(4)} ms`);
-                    // console.log(`- 총 시간: ${jsResponse.time_ms.toFixed(4)} ms`);
 
                     let htmlOutput2 = `
                         <div style="font-size: 0.9em; color: #333;">
                             • JS 계산 시간: <b>${jsCallTime.toFixed(2)} ms</b>
                         </div><hr>`;
-                    htmlOutput2 += formatResults(jsResults, false);
+                    // JS 결과도 5개로 제한하여 출력
+                    htmlOutput2 += formatResults(jsResults.slice(0, 5), false);
                     output2Div.innerHTML = htmlOutput2;
+
+                    // 마인드맵 그리기 (JS 결과 사용 - 마인드맵은 상위 10개 유지)
+                    drawMindMap('mindmapCompare', text, jsResults);
 
                     const t = window.translations[window.currentLanguage] || window.translations.ko;
                     document.getElementById('status').innerText = t.compareComplete;
@@ -602,14 +763,21 @@
                     const t = window.translations[window.currentLanguage] || window.translations.ko;
                     statusEl.innerText = t.calculating;
                     
-                    // 예시 이모지 숨기고 검색 결과 영역 표시
+                    // UI 초기화
                     const exampleEmojis = document.getElementById('exampleEmojis');
                     const searchResults = document.getElementById('searchResults');
                     const emptyState = document.getElementById('emptyState');
                     const resultCount = document.getElementById('resultCount');
+                    const mindmapContainer = document.getElementById('mindmapSimple');
+                    
                     if (exampleEmojis) exampleEmojis.style.display = 'none';
                     if (emptyState) emptyState.style.display = 'none';
                     if (resultCount) resultCount.style.display = 'none';
+                    if (mindmapContainer) {
+                        mindmapContainer.innerHTML = '';
+                        mindmapContainer.style.display = 'none';
+                    }
+
                     if (searchResults) {
                         searchResults.style.display = 'block';
                         searchResults.innerHTML = `<div style='text-align: center; padding: 40px;'><div class="spinner"></div><div style='color: #999; margin-top: 10px;'>${t.calculating}</div></div>`;
@@ -617,7 +785,7 @@
                         outputEl.innerHTML = `<div style='text-align: center; padding: 40px;'><div class="spinner"></div><div style='color: #999; margin-top: 10px;'>${t.calculating}</div></div>`;
                     }
 
-                    // 필요한 모델 가져오기 (자동 선택)
+                    // 모델 실행
                     const extractor = await window.getExtractorForText(inputText);
 
                     const t0 = performance.now();
@@ -629,14 +797,19 @@
                         embeddingTimeEl.innerText = `(공통) 텍스트 임베딩 시간: ${embeddingTime.toFixed(2)} ms`;
                     }
 
-                    const jsResponse = searchEmojisJS(vector);
+                    // 최적화된 JS 함수 사용
+                    const jsResponse = optimizedSearchJS(vector);
                     const jsResults = jsResponse.results;
 
-                    const resultsHtml = formatResults(jsResults, true);
+                    // 마인드맵 그리기 (상위 10개)
+                    drawMindMap('mindmapSimple', inputText, jsResults);
+
+                    // 하단 결과 그리드에는 상위 5개만 전달
+                    const resultsHtml = formatResults(jsResults.slice(0, 5), true);
+                    
                     if (searchResults) {
                         searchResults.innerHTML = resultsHtml;
                         // 검색 결과 개수 표시
-                        const resultCount = document.getElementById('resultCount');
                         if (resultCount) {
                             resultCount.style.display = 'block';
                             resultCount.textContent = `총 ${jsResults.length}개의 결과를 찾았습니다`;
@@ -644,10 +817,102 @@
                         // 검색 히스토리에 추가
                         addToHistory(inputText);
                     } else if (outputEl) {
-                        // outputEl이 있는 경우 (비교 탭 등)
                         outputEl.innerHTML = resultsHtml;
                     }
                     statusEl.innerText = t.searchComplete;
+                }
+
+                // 마인드맵 그리기 함수
+                function drawMindMap(containerId, centerText, results) {
+                    const container = document.getElementById(containerId);
+                    if (!container || !results || results.length === 0) return;
+
+                    container.style.display = 'flex';
+                    
+                    // 상위 10개 추출
+                    const topResults = results.slice(0, 10);
+                    const width = container.clientWidth || 600;
+                    const height = 400;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    
+                    // SVG 생성
+                    let svgContent = `<svg class="mindmap-svg" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+                    
+                    topResults.forEach((item, index) => {
+                        const meta = window.emojiMetadata[item.index];
+                        if (!meta) return;
+
+                        // 위치 계산 수정
+                        // 유사도(Score)가 높을수록(1.0) 중심에 가깝게, 낮을수록(0.0) 멀게
+                        const score = item.score;
+                        let distance = 250 - (score * 200);
+                        
+                        // 개수가 많아져서 중앙 밀집 방지를 위해 최소 거리를 85로 증가
+                        distance = Math.max(85, Math.min(distance, 190));
+                        
+                        const angleStep = (2 * Math.PI) / topResults.length;
+                        const angle = index * angleStep - (Math.PI / 2);
+
+                        const x = centerX + distance * Math.cos(angle);
+                        const y = centerY + distance * Math.sin(angle);
+
+                        const percentage = (score * 100).toFixed(1);
+
+                        // 라인 그리기
+                        svgContent += `
+                            <g class="link-group">
+                                <title>유사도: ${percentage}%</title>
+                                <line x1="${centerX}" y1="${centerY}" x2="${x}" y2="${y}" class="mindmap-link-hover-area" />
+                                <line x1="${centerX}" y1="${centerY}" x2="${x}" y2="${y}" class="mindmap-link" />
+                                <text x="${(centerX + x)/2}" y="${(centerY + y)/2 - 5}" font-size="11" fill="#666" text-anchor="middle" opacity="0.8">${percentage}%</text>
+                            </g>
+                        `;
+
+                        // 이모지 노드 그리기 (개수가 늘어나서 반지름을 22로 줄임)
+                        svgContent += `
+                            <g class="node-group" onclick="copyToClipboard('${meta.character}')">
+                                <circle cx="${x}" cy="${y}" r="22" fill="white" stroke="#e2e8f0" stroke-width="2" />
+                                <text x="${x}" y="${y}" class="mindmap-emoji-text">${meta.character}</text>
+                                <text x="${x}" y="${y + 35}" class="mindmap-label">${meta.description.substring(0, 8)}${meta.description.length > 8 ? '...' : ''}</text>
+                                <title>${meta.description} (클릭하여 복사)</title>
+                            </g>
+                        `;
+                    });
+
+                    // 중앙 노드 (검색어)
+                    svgContent += `
+                        <g>
+                            <circle cx="${centerX}" cy="${centerY}" r="40" class="mindmap-node-center" />
+                            <text x="${centerX}" y="${centerY}" class="mindmap-text">${centerText}</text>
+                        </g>
+                    `;
+
+                    svgContent += `</svg>`;
+                    
+                    // 툴팁용 div (선택적)
+                    const tooltip = `<div id="${containerId}-tooltip" class="svg-tooltip"></div>`;
+                    
+                    container.innerHTML = svgContent + tooltip;
+                    
+                    // 동적 툴팁 이벤트
+                    const hoverLines = container.querySelectorAll('.mindmap-link-hover-area');
+                    const tooltipEl = document.getElementById(`${containerId}-tooltip`);
+                    
+                    hoverLines.forEach(line => {
+                        line.addEventListener('mousemove', (e) => {
+                            const title = line.parentNode.querySelector('title').textContent;
+                            if(tooltipEl) {
+                                tooltipEl.textContent = title;
+                                tooltipEl.style.left = (e.pageX + 10) + 'px';
+                                tooltipEl.style.top = (e.pageY + 10) + 'px';
+                                tooltipEl.style.opacity = 1;
+                            }
+                        });
+                        line.addEventListener('mouseleave', () => {
+                            if(tooltipEl) tooltipEl.style.opacity = 0;
+                        });
+                    });
                 }
 
                 // 헤더 검색바 이벤트
@@ -729,7 +994,6 @@
     <script src="./emoji_search.js"></script>
 </head>
 <body>
-    <!-- 헤더 -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -763,25 +1027,24 @@
         </div>
     </header>
 
-    <!-- 메인 컨텐츠 -->
     <div class="main-container">
         <div class="tabs">
             <button class="tab-button active" data-tab="simple">검색만 하기</button>
             <button class="tab-button" data-tab="compare">WASM vs JS 비교</button>
         </div>
 
-        <!-- 검색 전용 탭 -->
         <div id="tab-simple" class="tab-content active">
             <div id="simpleStatus" style="margin-top: 10px; color: blue; font-weight: bold;">
                 초기화 시작: 메타데이터 로딩 (1/3), 모델 로딩 (2/3)
             </div>
             <div id="simpleEmbeddingTime" style="margin-top: 10px; font-size: 0.9em; color: green;"></div>
 
+            <div id="mindmapSimple" class="mindmap-container" style="display: none;"></div>
+
             <div id="simpleOutput" style="margin-top: 20px;">
                 <div id="resultCount" class="result-count" style="display: none;"></div>
                 <div id="exampleEmojis" class="emoji-grid" style="display: none;">
-                    <!-- 예시 이모지가 여기에 동적으로 표시됩니다 -->
-                </div>
+                    </div>
                 <div id="searchResults" style="display: none;"></div>
                 <div id="emptyState" style="text-align: center; padding: 40px; color: #999;">
                     <div class="empty-result">
@@ -795,26 +1058,27 @@
             <div id="suggestions" class="suggestions"></div>
         </div>
 
-    <!-- WASM vs JS 비교 탭 -->
     <div id="tab-compare" class="tab-content">
         <p style="margin-bottom: 15px; color: #6b7280;">동일한 문장 임베딩을 이용하여 WASM과 JavaScript 계산 속도를 비교합니다.</p>
 
         <div class="search-section">
-        <input type="text" id="userInput" placeholder="검색어를 입력하세요...">
-        <button id="runBtn" disabled>비교 실행</button>
-    </div>
+            <input type="text" id="userInput" placeholder="검색어를 입력하세요...">
+            <button id="runBtn" disabled>비교 실행</button>
+        </div>
 
-    <div id="status">초기화 시작: 메타데이터 로딩 (1/3), 모델 로딩 (2/3)</div>
+        <div id="status">초기화 시작: 메타데이터 로딩 (1/3), 모델 로딩 (2/3)</div>
         <div id="embeddingTime"></div>
+
+        <div id="mindmapCompare" class="mindmap-container" style="display: none;"></div>
 
         <div class="compare-section">
             <div class="compare-column">
-            <h4>WASM 계산 결과</h4>
-            <div id="output1" class="output-container">결과가 여기에 표시됩니다.</div>
-        </div>
+                <h4>WASM 계산 결과</h4>
+                <div id="output1" class="output-container">결과가 여기에 표시됩니다.</div>
+            </div>
             <div class="compare-column">
-            <h4>JavaScript 계산 결과</h4>
-            <div id="output2" class="output-container">결과가 여기에 표시됩니다.</div>
+                <h4>JavaScript 계산 결과</h4>
+                <div id="output2" class="output-container">결과가 여기에 표시됩니다.</div>
             </div>
         </div>
     </div>
@@ -1102,6 +1366,11 @@
                     simpleBtn.disabled = false;
                 }
                 
+                // 임베딩 데이터 최적화 (준비 완료 시점)
+                if (window.prepareEmbeddings) {
+                    window.prepareEmbeddings();
+                }
+
                 // 예시 이모지 표시
                 showExampleEmojis();
             }
@@ -1201,7 +1470,6 @@
         })();
     </script>
 
-    <!-- 토스트 알림 -->
     <div id="toast" class="toast"></div>
 
     <script>
