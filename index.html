@@ -594,23 +594,12 @@
     <script>
         window.Module = {
             onRuntimeInitialized: function() {
-                document.getElementById('status').innerText = "2/3. WASM 모듈 로딩 완료. 캐시 초기화 중...";
+                document.getElementById('status').innerText = "3/3. WASM 모듈 로딩 완료.";
+
                 window.WASM_Module = window.Module;
 
-                // WASM 함수 래핑
                 const searchEmojisWASM = window.WASM_Module.cwrap('search_emojis', 'number', ['number']);
                 const freeResultMemoryWASM = window.WASM_Module.cwrap('free_result_memory', null, ['number']);
-                const precalculateMagnitudesWASM = window.WASM_Module.cwrap('precalculate_db_magnitudes', null, []);
-
-                // WASM 임베딩 크기 캐시를 미리 계산합니다.
-                try {
-                    precalculateMagnitudesWASM();
-                    document.getElementById('status').innerText = "3/3. WASM 캐시 초기화 완료.";
-                } catch(e) {
-                    console.error("WASM 캐시 초기화 실패:", e);
-                    document.getElementById('status').innerText = "오류: WASM 캐시 초기화 실패";
-                    document.getElementById('status').style.color = "red";
-                }
 
                 if (window.checkReady) window.checkReady();
 
@@ -823,7 +812,8 @@
                         // 검색 결과 개수 표시
                         if (resultCount) {
                             resultCount.style.display = 'block';
-                            resultCount.textContent = `총 ${jsResults.length}개의 결과를 찾았습니다`;
+                            // 검색 결과 문구 수정
+                            resultCount.textContent = t.resultCountMsg;
                         }
                         // 검색 히스토리에 추가
                         addToHistory(inputText);
@@ -1112,7 +1102,8 @@
                 searchAvailable: "개 이모지 검색 가능",
                 calculating: "계산 중...",
                 searchComplete: "검색 완료!",
-                compareComplete: "비교 완료!"
+                compareComplete: "비교 완료!",
+                resultCountMsg: "가장 유사한 5개의 이모지입니다."
             },
             en: {
                 searchPlaceholder: "Search emoji...",
@@ -1129,7 +1120,8 @@
                 searchAvailable: " emojis available for search",
                 calculating: "Calculating...",
                 searchComplete: "Search complete!",
-                compareComplete: "Compare complete!"
+                compareComplete: "Compare complete!",
+                resultCountMsg: "Top 5 similar results"
             }
         };
 
