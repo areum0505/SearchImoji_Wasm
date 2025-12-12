@@ -51,7 +51,9 @@ double cosineSimilarity(const double* dbVec, double dbMag, const double* queryVe
     for (int i = 0; i < EMBEDDING_DIM; ++i)
         dotProduct += dbVec[i] * queryVec[i];
 
-    if (dbMag == 0.0 || queryMag == 0.0)
+    // 부동소수점 비교 시 오차를 고려하여 절대값과 작은 임계값(epsilon) 사용
+    const double epsilon = 1e-9;
+    if (std::abs(dbMag) < epsilon || std::abs(queryMag) < epsilon)
         return 0.0;
     return dotProduct / (dbMag * queryMag);
 }
