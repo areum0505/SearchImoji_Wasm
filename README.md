@@ -121,16 +121,19 @@ double cosineSimilarity(const double* dbVec, double dbMag, const double* queryVe
 
 본 프로젝트는 성능 향상을 위해 다음과 같은 최적화 기술을 적용하였습니다.
 
-### C++/JavaScript 알고리즘 최적화
+### 알고리즘 최적화
 - **벡터 크기 사전 캐싱**: 이모지 임베딩 데이터는 변하지 않으므로, 유사도 계산에 필요한 각 벡터의 크기를 계산하는 과정은 비용이 큽니다. **WASM 모듈이 로드되는 시점에 미리 계산**하여 캐시에 저장합니다. 이를 통해 비용이 큰 `sqrt` 연산을 수천 번 반복하는 것을 방지하였고, 첫 검색 시 발생하던 지연 시간을 제거하여 사용자는 C++(WASM)의 빠른 성능을 첫 검색부터 경험할 수 있습니다.
 - **최소 힙(Min-Heap) 사용**: 상위 5개 결과를 찾기 위해 C++에서는 `std::priority_queue`를 이용한 효율적인 배열 관리를 통해 전체 결과를 매번 정렬할 필요 없이 O(log N) 또는 그에 준하는 복잡도로 상위 N개를 효율적으로 유지합니다.
 ```cpp
- // 현재 점수가 가장 낮은 상위 결과(배열의 마지막 요소)보다 높으면 교체
-if (score > topResults[TOP_N_JS - 1].score) {
-    topResults.pop(); // 가장 낮은 점수 제거
-    topResults.push({ index: i, score: score });
-    // N이 작으므로, 삽입 후 매번 정렬하는 것이 splice보다 간단하고 충분히 빠릅니다.
-    topResults.sort((a, b) => b.score - a.score);
+// 힙의 크기가 TOP_N보다 작으면, 새 결과를 추가합니다.
+if (top_results.size() < TOP_N) {
+    top_results.push({i, score});
+} 
+// 힙이 꽉 찼고, 새 점수가 힙에서 가장 작은 점수(top)보다 크면,
+// 가장 작은 것을 제거하고 새 결과를 추가합니다.
+else if (score > top_results.top().score) {
+    top_results.pop();
+    top_results.push({i, score});
 }
 ```
 
